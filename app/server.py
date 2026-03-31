@@ -466,14 +466,25 @@ def feedback():
     flash('✅ Спасибо за отзыв!')
     return redirect('/')
 
+
+
+
+
+
 @app.route("/admin/feedbacks")
 def admin_feedbacks():
     try:
         conn = sqlite3.connect("data/feedback.db")
         rows = conn.execute(
-            "SELECT id, url, feedback, feedback, timestamp FROM feedbacks ORDER BY timestamp DESC LIMIT 100;"
+            "SELECT id, url, feedback, timestamp FROM feedbacks ORDER BY timestamp DESC LIMIT 50;"
         ).fetchall()
         conn.close()
+
+        html = """
+        <!DOCTYPE html>
+        <html><head><title>📊 ML Feedback Dashboard</title>
+        <style>
+        body { font-family: Arial; max-width: 1200px; margin: 0 auto; padding
 
         if not rows:
             return "<h1>📋 Отзывы</h1><p>📭 Пока нет отзывов</p><a href='/'>Главная</a>"
