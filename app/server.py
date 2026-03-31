@@ -457,7 +457,7 @@ def feedback():
         print(f"⚠️ DB error: {e}")
     
     flash('✅ Спасибо за отзыв!')
-    return redirect('/')redirect('/')
+    return redirect('/')
     
 
     return jsonify({"status": "ok"})
