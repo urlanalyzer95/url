@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 from flask import Flask, render_template, request, jsonify
 import pandas as pd
 import joblib
+from flask import Flask, render_template, request, jsonify, flash, redirect
 
 print("=== SERVER STARTING ===", file=sys.stderr)
 sys.stderr.flush()
@@ -437,38 +438,27 @@ def feedback():
     url = request.form.get('url', '')
     feedback_type = request.form.get('feedback', '')
     
-    # ✅ Render Logs (навсегда!)
-    print(f"✅ FEEDBACK: {url} | {feedback_type} | {datetime.now().isoformat()}")
+    print(f"✅ FEEDBACK: {url} | {feedback_type}")
     
-    # ✅ SQLite (data/feedback.db)
     try:
-        conn = get_conn()
-        with conn:
-            conn.execute('''CREATE TABLE IF NOT EXISTS feedbacks (
-                url TEXT, feedback TEXT, timestamp TEXT
-            );''')
-            conn.execute("INSERT INTO feedbacks VALUES (?, ?, ?);",
-                        (url, feedback_type, datetime.now().isoformat()))
-        print("✅ Feedback DB saved!")
+        os.makedirs("data", exist_ok=True)
+        conn = sqlite3.connect("data/feedback.db")
+        conn.execute('''CREATE TABLE IF NOT EXISTS feedbacks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            url TEXT, 
+            feedback TEXT, 
+            timestamp TEXT
+        );''')
+        conn.execute("INSERT INTO feedbacks (url, feedback, timestamp) VALUES (?, ?, ?);",
+                    (url, feedback_type, datetime.now().isoformat()))
+        conn.commit()
+        conn.close()
     except Exception as e:
         print(f"⚠️ DB error: {e}")
     
     flash('✅ Спасибо за отзыв!')
-    return redirect('/')
+    return redirect('/')redirect('/')
     
-    conn = get_conn()
-    with conn:
-        conn.execute('''CREATE TABLE IF NOT EXISTS feedbacks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            url TEXT,
-            model_verdict TEXT,
-            user_verdict TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        );''')
-        conn.execute(
-            "INSERT INTO feedbacks (url, model_verdict, user_verdict) VALUES (?, ?, ?);",
-            (data.get("url"), data.get("model_verdict"), data.get("user_verdict"))
-        )
 
     return jsonify({"status": "ok"})
 @app.route("/admin/feedbacks")
