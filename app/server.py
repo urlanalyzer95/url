@@ -434,25 +434,26 @@ def check_url():
 
 @app.route('/feedback', methods=['POST'])
 def feedback():
-    url = request.form['url']
-    feedback = request.form['feedback']
+    url = request.form.get('url', '')
+    feedback_type = request.form.get('feedback', '')
     
-    # ✅ ТОЛЬКО print() для Render Logs
-    print(f"✅ FEEDBACK: {url} | {feedback} | {datetime.now().isoformat()}")
+    # ✅ Render Logs (навсегда!)
+    print(f"✅ FEEDBACK: {url} | {feedback_type} | {datetime.now().isoformat()}")
     
-    # SQLite БД (работает в Render!)
-    conn = get_conn()
-    with conn:
-        conn.execute('''CREATE TABLE IF NOT EXISTS feedbacks (
-            url TEXT, feedback TEXT, timestamp TEXT
-        );''')
-        conn.execute(
-            "INSERT INTO feedbacks (url, feedback, timestamp) VALUES (?, ?, ?);",
-            (url, feedback, datetime.now().isoformat())
-        )
+    # ✅ SQLite (data/feedback.db)
+    try:
+        conn = get_conn()
+        with conn:
+            conn.execute('''CREATE TABLE IF NOT EXISTS feedbacks (
+                url TEXT, feedback TEXT, timestamp TEXT
+            );''')
+            conn.execute("INSERT INTO feedbacks VALUES (?, ?, ?);",
+                        (url, feedback_type, datetime.now().isoformat()))
+        print("✅ Feedback DB saved!")
+    except Exception as e:
+        print(f"⚠️ DB error: {e}")
     
-    from flask import flash
-    flash('✅ Спасибо! Отзыв сохранён!')
+    flash('✅ Спасибо за отзыв!')
     return redirect('/')
     
     conn = get_conn()
