@@ -437,33 +437,24 @@ def feedback():
     url = request.form['url']
     feedback = request.form['feedback']
     
-    # СОХРАНИТЬ В ФАЙЛ feedback.json
-    feedback_data = {
-        'url': url,
-        'feedback': feedback,
-        'timestamp': datetime.now().isoformat()
-    }
+    # ✅ ТОЛЬКО print() для Render Logs
+    print(f"✅ FEEDBACK: {url} | {feedback} | {datetime.now().isoformat()}")
     
-    # Создать/добавить в файл
-    try:
-        with open('feedback.json', 'r') as f:
-            feedbacks = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        feedbacks = []
+    # SQLite БД (работает в Render!)
+    conn = get_conn()
+    with conn:
+        conn.execute('''CREATE TABLE IF NOT EXISTS feedbacks (
+            url TEXT, feedback TEXT, timestamp TEXT
+        );''')
+        conn.execute(
+            "INSERT INTO feedbacks (url, feedback, timestamp) VALUES (?, ?, ?);",
+            (url, feedback, datetime.now().isoformat())
+        )
     
-    feedbacks.append(feedback_data)
-    with open('feedback.json', 'w') as f:
-        json.dump(feedbacks, f, indent=2)
-    
-    print(f"✅ Feedback SAVED: {url} - {feedback}")
-    flash('✅ Спасибо! Обратная связь сохранена!')
+    from flask import flash
+    flash('✅ Спасибо! Отзыв сохранён!')
     return redirect('/')
-
-
-#@app.route("/feedback", methods=["POST"])
-#def feedback():
-#    data = request.json
-
+    
     conn = get_conn()
     with conn:
         conn.execute('''CREATE TABLE IF NOT EXISTS feedbacks (
