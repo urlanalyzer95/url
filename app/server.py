@@ -478,7 +478,7 @@ def admin_feedbacks():
 
         html = f"<h1>📋 Отзывы ({len(rows)})</h1><table border='1' style='border-collapse: collapse;'><tr><th>ID</th><th>URL</th><th>Отзыв</th><th>Дата</th></tr>"
         for row in rows:
-            id_, url, feedback, _, timestamp = row
+            id_, url, feedback, timestamp =
             url_short = (url[:50] + "...") if len(url) > 50 else url
             html += f"<tr><td>{id_}</td><td><a href='{url}' target='_blank'>{url_short}</a></td><td>{feedback}</td><td>{timestamp}</td></tr>"
         html += "</table><br><a href='/'>Главная</a>"
