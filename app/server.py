@@ -438,37 +438,37 @@ def feedback():
     url = request.form.get('url') or ''
     feedback_type = request.form.get('feedback') or ''
     
+    print(f"🔥 FEEDBACK DEBUG: url='{url}' type='{feedback_type}'")  # ✅
+    
     if not url or not feedback_type:
-        flash('❌ Ошибка: не все поля заполнены!')
+        print("❌ FEEDBACK: ПУСТЫЕ ДАННЫЕ!")
+        flash('❌ Заполните все поля!')
         return redirect('/')
     
-    # ✅ Render Logs
-    print(f"✅ FEEDBACK: {url} | {feedback_type} | {datetime.now().isoformat()}")
-    
-    # ✅ SQLite
     try:
         os.makedirs("data", exist_ok=True)
         conn = sqlite3.connect("data/feedback.db")
+        
+        # ✅ СОЗДАЁМ ТАБЛИЦУ ПРИ ВЫЗОВЕ!
         conn.execute('''CREATE TABLE IF NOT EXISTS feedbacks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            url TEXT, 
-            feedback TEXT, 
-            timestamp TEXT
+            url TEXT NOT NULL,
+            feedback TEXT NOT NULL,
+            timestamp TEXT NOT NULL
         );''')
+        
         conn.execute("INSERT INTO feedbacks (url, feedback, timestamp) VALUES (?, ?, ?);",
                     (url, feedback_type, datetime.now().isoformat()))
         conn.commit()
         conn.close()
-        print("✅ Feedback DB OK")
+        
+        print(f"✅ FEEDBACK OK: {url} | {feedback_type}")  # ✅ ЛОГИ!
+        
     except Exception as e:
-        print(f"⚠️ DB error: {e}")
+        print(f"❌ FEEDBACK ERROR: {e}")
     
     flash('✅ Спасибо за отзыв!')
     return redirect('/')
-
-
-
-
 
 
 @app.route("/admin/feedbacks")
