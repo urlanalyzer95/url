@@ -435,41 +435,34 @@ def check_url():
 
 @app.route('/feedback', methods=['POST'])
 def feedback():
-    url = request.form.get('url') or ''
-    feedback_type = request.form.get('feedback') or ''
+    # ✅ Берём из JavaScript или формы
+    url = request.form.get('url') or request.json.get('url') or ''
+    feedback_type = request.form.get('feedback') or request.json.get('feedback') or 'unknown'
     
-    print(f"🔥 FEEDBACK DEBUG: url='{url}' type='{feedback_type}'")  # ✅
+    print(f"🔥 FEEDBACK: url='{url}' type='{feedback_type}'")
     
-    if not url or not feedback_type:
-        print("❌ FEEDBACK: ПУСТЫЕ ДАННЫЕ!")
-        flash('❌ Заполните все поля!')
-        return redirect('/')
-    
+    # ✅ Создаём таблицу ПРИНУДИТЕЛЬНО
     try:
         os.makedirs("data", exist_ok=True)
         conn = sqlite3.connect("data/feedback.db")
-        
-        # ✅ СОЗДАЁМ ТАБЛИЦУ ПРИ ВЫЗОВЕ!
         conn.execute('''CREATE TABLE IF NOT EXISTS feedbacks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            url TEXT NOT NULL,
-            feedback TEXT NOT NULL,
-            timestamp TEXT NOT NULL
+            url TEXT, feedback TEXT, timestamp TEXT
         );''')
-        
-        conn.execute("INSERT INTO feedbacks (url, feedback, timestamp) VALUES (?, ?, ?);",
-                    (url, feedback_type, datetime.now().isoformat()))
         conn.commit()
+        
+        if url:  # Только если URL есть
+            conn.execute("INSERT INTO feedbacks (url, feedback, timestamp) VALUES (?, ?, ?);",
+                        (url, feedback_type, datetime.now().isoformat()))
+            conn.commit()
+            print("✅ FEEDBACK SAVED!")
+        
         conn.close()
-        
-        print(f"✅ FEEDBACK OK: {url} | {feedback_type}")  # ✅ ЛОГИ!
-        
     except Exception as e:
-        print(f"❌ FEEDBACK ERROR: {e}")
+        print(f"❌ DB ERROR: {e}")
     
-    flash('✅ Спасибо за отзыв!')
+    flash('✅ Отзыв отправлен!')
     return redirect('/')
-
 
 @app.route("/admin/feedbacks")
 def admin_feedbacks():
