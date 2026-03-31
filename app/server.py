@@ -432,9 +432,37 @@ def check_url():
     cache.put(url, result)
     return jsonify(result)
 
-@app.route("/feedback", methods=["POST"])
+@app.route('/feedback', methods=['POST'])
 def feedback():
-    data = request.json
+    url = request.form['url']
+    feedback = request.form['feedback']
+    
+    # СОХРАНИТЬ В ФАЙЛ feedback.json
+    feedback_data = {
+        'url': url,
+        'feedback': feedback,
+        'timestamp': datetime.now().isoformat()
+    }
+    
+    # Создать/добавить в файл
+    try:
+        with open('feedback.json', 'r') as f:
+            feedbacks = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        feedbacks = []
+    
+    feedbacks.append(feedback_data)
+    with open('feedback.json', 'w') as f:
+        json.dump(feedbacks, f, indent=2)
+    
+    print(f"✅ Feedback SAVED: {url} - {feedback}")
+    flash('✅ Спасибо! Обратная связь сохранена!')
+    return redirect('/')
+
+
+#@app.route("/feedback", methods=["POST"])
+#def feedback():
+#    data = request.json
 
     conn = get_conn()
     with conn:
