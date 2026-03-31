@@ -480,9 +480,6 @@ def admin_feedbacks():
         ).fetchall()
         conn.close()
 
-        html = """
-        <!DOCTYPE html>
-        <html><head><title>📊 ML Feedback Dashboard</title>
         <style>
         body { font-family: Arial; max-width: 1200px; margin: 0 auto; padding
 
