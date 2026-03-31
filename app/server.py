@@ -480,9 +480,6 @@ def admin_feedbacks():
         ).fetchall()
         conn.close()
 
-        <style>
-        body { font-family: Arial; max-width: 1200px; margin: 0 auto; padding
-
         if not rows:
             return "<h1>📋 Отзывы</h1><p>📭 Пока нет отзывов</p><a href='/'>Главная</a>"
 
