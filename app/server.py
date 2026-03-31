@@ -3,18 +3,18 @@ import json
 import sqlite3
 import os
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from collections import OrderedDict
 from urllib.parse import urlparse
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, flash, redirect
 import pandas as pd
 import joblib
-from flask import Flask, render_template, request, jsonify, flash, redirect
+
+app = Flask(__name__)
+app.secret_key = 'url-analyzer-secret-key-2026'  # ✅ Обязательно для flash!
 
 print("=== SERVER STARTING ===", file=sys.stderr)
 sys.stderr.flush()
-
-app = Flask(__name__)
 
 class LRUCache:
     def __init__(self, max_size=1000):
@@ -435,11 +435,17 @@ def check_url():
 
 @app.route('/feedback', methods=['POST'])
 def feedback():
-    url = request.form.get('url', '')
-    feedback_type = request.form.get('feedback', '')
+    url = request.form.get('url') or ''
+    feedback_type = request.form.get('feedback') or ''
     
-    print(f"✅ FEEDBACK: {url} | {feedback_type}")
+    if not url or not feedback_type:
+        flash('❌ Ошибка: не все поля заполнены!')
+        return redirect('/')
     
+    # ✅ Render Logs
+    print(f"✅ FEEDBACK: {url} | {feedback_type} | {datetime.now().isoformat()}")
+    
+    # ✅ SQLite
     try:
         os.makedirs("data", exist_ok=True)
         conn = sqlite3.connect("data/feedback.db")
@@ -453,64 +459,35 @@ def feedback():
                     (url, feedback_type, datetime.now().isoformat()))
         conn.commit()
         conn.close()
+        print("✅ Feedback DB OK")
     except Exception as e:
         print(f"⚠️ DB error: {e}")
     
     flash('✅ Спасибо за отзыв!')
     return redirect('/')
-    
 
-    return jsonify({"status": "ok"})
 @app.route("/admin/feedbacks")
 def admin_feedbacks():
     try:
-        conn = get_conn()
-        with conn:
-            rows = conn.execute(
-                "SELECT id, url, model_verdict, user_verdict, timestamp FROM feedbacks "
-                "ORDER BY timestamp DESC LIMIT 100;"
-            ).fetchall()
+        conn = sqlite3.connect("data/feedback.db")
+        rows = conn.execute(
+            "SELECT id, url, feedback, feedback, timestamp FROM feedbacks ORDER BY timestamp DESC LIMIT 100;"
+        ).fetchall()
+        conn.close()
 
         if not rows:
-            return """
-                <h1>📋 Отзывы пользователей</h1>
-                <p>📭 Пока нет отзывов</p>
-                <a href="/">На главную</a>
-            """
+            return "<h1>📋 Отзывы</h1><p>📭 Пока нет отзывов</p><a href='/'>Главная</a>"
 
-        html = """
-            <h1>📋 Отзывы пользователей</h1>
-            <p>Всего отзывов: {}</p>
-            <table border="1" cellpadding="5" style="border-collapse: collapse;">
-            <tr><th>ID</th><th>URL</th><th>Модель</th><th>Пользователь</th><th>Дата</th></tr>
-        """.format(len(rows))
-
+        html = f"<h1>📋 Отзывы ({len(rows)})</h1><table border='1' style='border-collapse: collapse;'><tr><th>ID</th><th>URL</th><th>Отзыв</th><th>Дата</th></tr>"
         for row in rows:
-            id_, url, model_v, user_v, timestamp = row
-            if model_v == user_v:
-                style = "color: green;"
-            else:
-                style = "color: red; font-weight: bold;"
-            url_short = url[:50] + "..." if len(url) > 50 else url
-            html += f"""
-                <tr>
-                    <td>{id_}</td>
-                    <td><a href="{url}" target="_blank">{url_short}</a></td>
-                    <td>{model_v}</td>
-                    <td style="{style}">{user_v}</td>
-                    <td>{timestamp}</td>
-                </tr>
-            """
-
-        html += """        </table>
-        <br>
-        <a href="/">На главную</a>
-        """
+            id_, url, feedback, _, timestamp = row
+            url_short = (url[:50] + "...") if len(url) > 50 else url
+            html += f"<tr><td>{id_}</td><td><a href='{url}' target='_blank'>{url_short}</a></td><td>{feedback}</td><td>{timestamp}</td></tr>"
+        html += "</table><br><a href='/'>Главная</a>"
         return html
 
     except Exception as e:
-        return f"<h1>Ошибка</h1><p>{str(e)}</p><a href='/'>На главную</a>", 500
-
+        return f"<h1>Ошибка</h1><p>{str(e)}</p><a href='/'>Главная</a>"
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
