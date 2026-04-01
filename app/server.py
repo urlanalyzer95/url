@@ -1,7 +1,8 @@
 from flask import Flask, render_template, request, jsonify
 from datetime import datetime, timedelta
 from config import Config
-from logger import logger
+import logging
+logger = logging.getLogger(__name__)
 from security import security
 from src.ensemble_predictor import ensemble
 from src.feedback_system import FeedbackSystem
