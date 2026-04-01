@@ -4,5 +4,4 @@ scikit-learn==1.5.2
 pandas==2.2.3
 numpy==1.26.4
 joblib==1.4.2
-python-Levenshtein==0.25.1
-python-pptx==1.0.2
+redis==5.0.0
