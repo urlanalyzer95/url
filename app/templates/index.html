@@ -69,14 +69,10 @@
             <div class="feedback-buttons">
               <button class="btn-feedback" id="submitFeedback">Отправить отзыв</button>
               <button class="btn-cancel" id="cancelFeedback">Отмена</button>
-            </div>
-
-            <!-- 🎯 ML ДОБУЧЕНИЕ КНОПКИ -->
-            <div id="ml-training" style="display:none; margin-top:15px; padding:10px; background:#e8f5e8; border-radius:5px; font-size:14px;">
-              <strong>🤖 Обучить ML модель:</strong><br>
-              <button onclick="mlFeedback(1)" style="background:#dc3545;color:white;padding:6px 12px;border:none;border-radius:4px;cursor:pointer;margin:5px;">🔴 ФИШИНГ (1)</button>
-              <button onclick="mlFeedback(0)" style="background:#28a745;color:white;padding:6px 12px;border:none;border-radius:4px;cursor:pointer;margin:5px;">🟢 БЕЗОПАСНО (0)</button>
-              <small style="color:#666;">→ сохранится в БД для /admin/retrain</small>
+            <div id="ml-training" style="display:block; margin:20px 0; padding:15px; background:#e8f5e8; border-radius:8px;">
+            <strong>🤖 Обучить ML:</strong><br>
+            <button onclick="mlFeedback(1)" style="background:#dc3545;color:white;padding:10px 20px;border:none;border-radius:5px;cursor:pointer;margin:5px;">🔴 ФИШИНГ=1</button>
+            <button onclick="mlFeedback(0)" style="background:#28a745;color:white;padding:10px 20px;border:none;border-radius:5px;cursor:pointer;margin:5px;">🟢 SAFE=0</button>
             </div>
           </div>
         </div>
