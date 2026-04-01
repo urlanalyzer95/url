@@ -165,44 +165,26 @@ def has_many_subdomains(url: str) -> bool:
 
 def compute_score(url: str) -> float:
     signals = []
-    print(f"DEBUG: checking {url}", file=sys.stderr)
-    
-    url_lower = url.lower()
     
     # 🚨 СУПЕР-ФИШИНГ (ПРИОРИТЕТ №1)
+    url_lower = url.lower()
     if any(x in url_lower for x in ['g00gle', 'go0gle', 'goog1e', 'yаndex', 'sberbаnk']):
-        signals.append((0.90, "🚨 ФИШИНГ-БРЕНД"))
-        print(f"🚨 PHISH DETECTED: {url}", file=sys.stderr)
+        return 0.95  # ← ЖЕСТКИЙ ФИШИНГ!
     
-    # ML + 15 эвристик...
-    # (оставить остальное без изменений)
+    # 15 ЭВРИСТИК (каждая добавляет баллы)
+    if not url.startswith('https://'): signals.append(0.15)
+    if has_brand_phishing(url): signals.append(0.50)
+    if is_typosquatting(url): signals.append(0.45)
+    if is_shortener(url): signals.append(0.35)
+    if has_suspicious_path(url): signals.append(0.35)
+    if has_suspicious_params(url): signals.append(0.30)
+    if is_suspicious_tld(url): signals.append(0.30)
+    if has_numbers_in_domain(url): signals.append(0.20)
+    if is_short_domain(url): signals.append(0.15)
+    if is_ip_with_port(url): signals.append(0.45)
+    if has_many_subdomains(url): signals.append(0.20)
     
-    # ML модель
-    if model and features_df is not None:
-        try:
-            row = features_df[features_df["url"] == url]
-            if not row.empty:
-                X = row[feature_columns]
-                ml_prob = model.predict_proba(X)[0][1]
-                signals.append((0.6 * ml_prob, "ML"))
-        except Exception as e:
-            print(f"ML error: {e}", file=sys.stderr)
-
-    # 15 ЭВРИСТИК (все!)
-    if not url.startswith('https://'): signals.append((0.15, "no HTTPS"))
-    if has_brand_phishing(url): signals.append((0.5, "brand"))
-    if is_typosquatting(url): signals.append((0.45, "typo"))
-    if is_shortener(url): signals.append((0.35, "shortener"))
-    if has_suspicious_path(url): signals.append((0.35, "path"))
-    if has_suspicious_params(url): signals.append((0.3, "params"))
-    if has_numbers_in_domain(url): signals.append((0.12, "numbers"))
-    if is_short_domain(url): signals.append((0.1, "short domain"))
-    if is_suspicious_tld(url): signals.append((0.3, "TLD"))
-    if is_ip_with_port(url): signals.append((0.45, "IP:port"))
-    if has_many_subdomains(url): signals.append((0.12, "subdomains"))
-    
-    total = sum(w for w, _ in signals)
-    print(f"DEBUG: score={total:.2f} signals={len(signals)}", file=sys.stderr)
+    total = sum(signals)
     return min(total, 1.0)
 
 
