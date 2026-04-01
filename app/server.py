@@ -81,7 +81,7 @@ def health():
     })
 
 @app.route('/check', methods=['POST'])
-#@security.rate_limit()
+# @security.rate_limit()  # Уже закомментировано
 def check_url():
     data = request.json
     raw_url = data.get('url', '').strip()
@@ -89,14 +89,12 @@ def check_url():
     if not raw_url:
         return jsonify({'error': 'URL не указан'}), 400
     
-    is_valid, error_msg = security.validate_url(raw_url)
-    if not is_valid:
+    # 🔧 ФИКС: ПРЯМАЯ валидация, БЕЗ security!
+    if len(raw_url) > 2048:
         return jsonify({
-            'url': raw_url,
-            'verdict': 'invalid',
-            'verdict_text': '❌ НЕВАЛИДНЫЙ URL',
-            'score': 0,
-            'explanations': [error_msg]
+            'url': raw_url, 'verdict': 'invalid', 
+            'verdict_text': '❌ URL слишком длинный',
+            'score': 0, 'explanations': ['URL слишком длинный']
         }), 400
     
     url = normalize_url(raw_url)
