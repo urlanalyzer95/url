@@ -81,7 +81,7 @@ def health():
     })
 
 @app.route('/check', methods=['POST'])
-@security.rate_limit()
+#@security.rate_limit()
 def check_url():
     data = request.json
     raw_url = data.get('url', '').strip()
