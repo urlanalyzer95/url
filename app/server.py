@@ -169,10 +169,14 @@ def compute_score(url: str) -> float:
     
     url_lower = url.lower()
     
-    # 🚨 СУПЕР-ФИШИНГ (приоритет 1)
+    # 🚨 СУПЕР-ФИШИНГ (ПРИОРИТЕТ №1)
     if any(x in url_lower for x in ['g00gle', 'go0gle', 'goog1e', 'yаndex', 'sberbаnk']):
         signals.append((0.90, "🚨 ФИШИНГ-БРЕНД"))
-        print(f"🚨 SUPER PHISH DETECTED: {url}", file=sys.stderr)
+        print(f"🚨 PHISH DETECTED: {url}", file=sys.stderr)
+        return 0.90  # ← РАННИЙ RETURN!
+    
+    # ML + 15 эвристик...
+    # (оставить остальное без изменений)
     
     # ML модель
     if model and features_df is not None:
