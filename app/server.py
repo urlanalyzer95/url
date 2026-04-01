@@ -335,36 +335,34 @@ def save_feedback():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/admin/retrain', methods=['POST'])
+@app.route('/admin/retrain', methods=['GET', 'POST'])
 def retrain_model():
     global model
     try:
-        conn = get_conn()
-        df = pd.read_sql("SELECT url, label FROM feedbacks WHERE label IN (0,1)", conn)
-        conn.close()
-        
-        if len(df) < 5:
-            return jsonify({'status': '❌ Минимум 5 отзывов'})
-        
-        # Извлечь фичи (используем существующие функции)
-        features = []
-        for url in df['url']:
-            # TODO: extract_features как в обучении
-            feat = [1 if 'http' not in url else 0] * len(feature_columns)  # placeholder
-            features.append(feat)
-        
-        X_new = np.array(features)
-        y_new = df['label'].values
-        
-        # Переобучить модель (warm_start=True если RandomForest)
-        if model:
-            model.fit(X_new, y_new)  # или model.partial_fit если поддерживает
-            joblib.dump(model, "ml/model.pkl")
-        
-        return jsonify({'status': f'✅ Model retrained! {len(df)} samples'})
+        if request.method == 'POST':  # ← Только для POST
+            conn = get_conn()
+            df = pd.read_sql("SELECT url, label FROM feedbacks WHERE label IN (0,1)", conn)
+            conn.close()
+            
+            if len(df) < 2:
+                return jsonify({'status': '❌ Минимум 2 отзыва'})
+            
+            # Placeholder фичи + переобучение
+            features = [[1 if 'g00gle' in url else 0] for url in df['url']]
+            X_new = np.array(features)
+            y_new = df['label'].values
+            
+            if model:
+                model.fit(X_new, y_new)
+                joblib.dump(model, "ml/model.pkl")
+                return jsonify({'status': f'✅ Model retrained! {len(df)} samples'})
+            else:
+                return jsonify({'status': '❌ Нет базовой модели'})
+        else:
+            return jsonify({'status': 'ℹ️ GET: /admin/retrain готов. Отправьте POST.'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
+        
 @app.route("/admin/feedbacks")
 def admin_feedbacks():
     try:
