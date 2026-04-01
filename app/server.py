@@ -136,7 +136,22 @@ def has_numbers_in_domain(url: str) -> bool:
         return sum(c.isdigit() for c in netloc) > 5
     except:
         return False
+def is_short_domain(url: str) -> bool:
+    try:
+        netloc = urlparse(url).netloc.split(".")[0]
+        return 1 < len(netloc) <= 3
+    except:
+        return False
 
+def is_ip_with_port(url: str) -> bool:
+    return bool(re.search(r'\d+\.\d+\.\d+\.\d+:\d+', url))
+
+def has_many_subdomains(url: str) -> bool:
+    try:
+        parts = urlparse(url).netloc.split(".")
+        return len(parts) > 4
+    except:
+        return False
 
 def compute_score(url: str) -> float:  # ← Оставить ЭТУ
     signals = []
