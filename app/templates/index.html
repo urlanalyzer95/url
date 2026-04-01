@@ -70,6 +70,28 @@
               <button class="btn-feedback" id="submitFeedback">Отправить отзыв</button>
               <button class="btn-cancel" id="cancelFeedback">Отмена</button>
             <div id="ml-training" style="display:block; margin:20px 0; padding:15px; background:#e8f5e8; border-radius:8px;">
+              <!-- 🔄 КНОПКА ПЕРЕОБУЧЕНИЯ МОДЕЛИ -->
+<div style="margin:20px 0; padding:15px; background:#e0f7fa; border-radius:8px; text-align:center;">
+  <button onclick="retrainModel()" 
+          style="background:#007bff; color:white; padding:12px 24px; border:none; border-radius:8px; font-size:16px; cursor:pointer;">
+    🔄 ПЕРЕОБУЧИТЬ МОДЕЛЬ
+  </button>
+  <br><small style="color:#666;">Использует ваши метки из /admin/feedbacks</small>
+</div>
+
+<script>
+function retrainModel() {
+  if(confirm('Переобучить модель на ' + document.querySelector('.feedback-count').textContent + ' отзывах?')) {
+    fetch('/admin/retrain', {method: 'POST'})
+    .then(r => r.json())
+    .then(data => {
+      alert('✅ ' + (data.status || data.error));
+      location.reload(); // Обновить страницу
+    })
+    .catch(e => alert('❌ Ошибка: ' + e));
+  }
+}
+</script>
             <strong>🤖 Обучить ML:</strong><br>
             <button onclick="mlFeedback(1)" style="background:#dc3545;color:white;padding:10px 20px;border:none;border-radius:5px;cursor:pointer;margin:5px;">🔴 ФИШИНГ=1</button>
             <button onclick="mlFeedback(0)" style="background:#28a745;color:white;padding:10px 20px;border:none;border-radius:5px;cursor:pointer;margin:5px;">🟢 SAFE=0</button>
