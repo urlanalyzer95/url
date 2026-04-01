@@ -42,6 +42,16 @@ def get_conn():
     conn = sqlite3.connect("data/feedback.db")
     conn.execute("PRAGMA journal_mode=WAL;")
     conn.execute("PRAGMA synchronous=NORMAL;")
+    
+    # ✅ СОЗДАТЬ ТАБЛИЦУ
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS feedbacks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            url TEXT NOT NULL,
+            feedback TEXT NOT NULL,
+            timestamp TEXT NOT NULL
+        )
+    """)
     return conn
 
 # ========================================
@@ -170,8 +180,8 @@ def compute_score(url: str) -> float:  # ← Оставить ЭТУ
 
     # ✅ ФИКС g00gle.com
     url_lower = url.lower()
-    if 'g00gle' in url_lower or 'go0gle' in url_lower:
-        signals.append((0.85, "🚨 GOOGLE ФИШИНГ"))
+    if any(x in url_lower for x in ['g00gle', 'go0gle', 'goog1e', 'yаndex']):
+        signals.append((0.9, "🚨 ФИШИНГ-БРЕНД"))
     
     if not url.startswith('https://'): signals.append((0.15, "no HTTPS"))
     if has_brand_phishing(url): signals.append((0.5, "brand"))
