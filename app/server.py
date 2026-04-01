@@ -43,12 +43,12 @@ def get_conn():
     conn.execute("PRAGMA journal_mode=WAL;")
     conn.execute("PRAGMA synchronous=NORMAL;")
     
-    # ✅ СОЗДАТЬ ТАБЛИЦУ
     conn.execute("""
         CREATE TABLE IF NOT EXISTS feedbacks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             url TEXT NOT NULL,
             feedback TEXT NOT NULL,
+            label INTEGER,  # ← ДОБАВИТЬ!
             timestamp TEXT NOT NULL
         )
     """)
@@ -310,18 +310,56 @@ def check_url():
         "dataset_size": len(features_df) if features_df is not None else 0
     })
 
+# ========================================
+# ✅ ДОБУЧЕНИЕ ML НА ОТЗЫВАХ
+# ========================================
 @app.route('/feedback', methods=['POST'])
-def feedback():
-    url = request.form.get('url') or request.json.get('url') or ''
-    feedback_type = request.form.get('feedback') or request.json.get('feedback') or 'unknown'
-    
-    conn = get_conn()
-    conn.execute("INSERT INTO feedbacks (url, feedback, timestamp) VALUES (?, ?, ?)",
-                (url, feedback_type, datetime.now().isoformat()))
-    conn.commit()
-    conn.close()
-    
-    return jsonify({"status": "saved", "message": "Feedback saved!"})
+def save_feedback():
+    try:
+        data = request.json or request.form
+        url = data.get('url')
+        label = int(data.get('label'))  # 0=safe, 1=phishing
+        
+        conn = get_conn()
+        conn.execute(
+            "INSERT OR REPLACE INTO feedbacks (url, feedback, label, timestamp) VALUES (?, ?, ?, ?)",
+            (url, f"label_{label}", label, datetime.now().isoformat())
+        )
+        conn.commit()
+        conn.close()
+        return jsonify({'status': '✅ Feedback saved!'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/admin/retrain', methods=['POST'])
+def retrain_model():
+    global model
+    try:
+        conn = get_conn()
+        df = pd.read_sql("SELECT url, label FROM feedbacks WHERE label IN (0,1)", conn)
+        conn.close()
+        
+        if len(df) < 5:
+            return jsonify({'status': '❌ Минимум 5 отзывов'})
+        
+        # Извлечь фичи (используем существующие функции)
+        features = []
+        for url in df['url']:
+            # TODO: extract_features как в обучении
+            feat = [1 if 'http' not in url else 0] * len(feature_columns)  # placeholder
+            features.append(feat)
+        
+        X_new = np.array(features)
+        y_new = df['label'].values
+        
+        # Переобучить модель (warm_start=True если RandomForest)
+        if model:
+            model.fit(X_new, y_new)  # или model.partial_fit если поддерживает
+            joblib.dump(model, "ml/model.pkl")
+        
+        return jsonify({'status': f'✅ Model retrained! {len(df)} samples'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500)
 
 @app.route("/admin/feedbacks")
 def admin_feedbacks():
