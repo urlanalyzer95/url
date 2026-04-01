@@ -7,14 +7,14 @@ import pandas as pd
 import sqlite3
 from pathlib import Path
 
+# Добавляем корневую директорию в путь
 sys.path.append(str(Path(__file__).parent.parent))
-from config import Config
 
 def export_feedback():
     """Экспорт всех отзывов"""
     print("📤 ЭКСПОРТ ОТЗЫВОВ...")
     
-    db_path = Config.DATA_DIR / 'feedback.db'
+    db_path = Path('data/feedback.db')
     if not db_path.exists():
         print(f"⚠️ База данных не найдена: {db_path}")
         return None
@@ -42,8 +42,8 @@ def export_feedback():
     
     # Сохраняем
     if not all_feedback.empty:
-        all_feedback.to_csv(Config.DATA_DIR / 'feedback_all.csv', index=False)
-        all_feedback.to_json(Config.DATA_DIR / 'feedback_all.json', 
+        all_feedback.to_csv('data/feedback_all.csv', index=False)
+        all_feedback.to_json('data/feedback_all.json', 
                             orient='records', indent=2, force_ascii=False)
         print(f"✅ Экспортировано {len(all_feedback)} отзывов")
     
@@ -55,7 +55,7 @@ def export_feedback():
         })
         new_feedback = new_feedback.dropna()
         new_feedback[['url', 'label']].to_csv(
-            Config.DATA_DIR / 'new_training_examples.csv', index=False
+            'data/new_training_examples.csv', index=False
         )
         print(f"✅ Найдено {len(new_feedback)} новых примеров для дообучения")
         
@@ -67,5 +67,4 @@ def export_feedback():
     return new_feedback
 
 if __name__ == '__main__':
-    Config.init_dirs()
     export_feedback()
