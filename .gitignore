@@ -1,8 +1,46 @@
-data/*.csv
-ml/*.pkl
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.Python
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Data
+data/raw/*.csv
+data/processed/*.csv
+data/feedback.db
+*.db
+
+# Models
+models/*.pkl
+models/*.joblib
+
+# Logs
+logs/*.log
 *.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.pid
+
+# Flask
+instance/
+.webassets-cache
+
+# Environment
 .env
-Dockerfile.*
+.env.local
