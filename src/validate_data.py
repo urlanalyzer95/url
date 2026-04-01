@@ -3,11 +3,7 @@
 """
 
 import pandas as pd
-import sys
 from pathlib import Path
-
-sys.path.append(str(Path(__file__).parent.parent))
-from config import Config
 
 def validate_dataset(file_path):
     """Проверка датасета"""
@@ -31,11 +27,12 @@ def validate_dataset(file_path):
     
     # Дубликаты
     print(f"\n🔎 ПРОВЕРКА НА ДУБЛИКАТЫ:")
-    duplicates = df.duplicated(subset=['url']).sum()
-    if duplicates == 0:
-        print("   ✅ Дубликатов нет")
-    else:
-        print(f"   ⚠️ Найдено дубликатов URL: {duplicates}")
+    if 'url' in df.columns:
+        duplicates = df.duplicated(subset=['url']).sum()
+        if duplicates == 0:
+            print("   ✅ Дубликатов нет")
+        else:
+            print(f"   ⚠️ Найдено дубликатов URL: {duplicates}")
     
     # Лейблы
     print(f"\n🔎 ПРОВЕРКА ЛЕЙБЛОВ:")
@@ -56,24 +53,22 @@ def validate_dataset(file_path):
     # Признаки
     print(f"\n🔎 ПРОВЕРКА ПРИЗНАКОВ:")
     feature_cols = [c for c in df.columns if c not in ['url', 'label']]
-    for col in feature_cols[:3]:  # Первые 3 признака
+    for col in feature_cols[:5]:  # Первые 5 признаков
         print(f"   {col}: min={df[col].min():.2f}, max={df[col].max():.2f}, mean={df[col].mean():.2f}")
     
     print("\n✅ ПРОВЕРКА ЗАВЕРШЕНА")
     return df
 
 if __name__ == '__main__':
-    Config.init_dirs()
-    
     # Проверяем новый датасет
-    new_dataset = Config.PROCESSED_DATA_DIR / 'url_dataset_features_v2.csv'
+    new_dataset = Path('data/processed/url_dataset_features_v2.csv')
     if new_dataset.exists():
         validate_dataset(new_dataset)
     else:
         print("❌ Новый датасет не найден!")
         
         # Проверяем старый
-        old_dataset = Config.PROCESSED_DATA_DIR / 'url_dataset_features.csv'
+        old_dataset = Path('data/processed/url_dataset_features.csv')
         if old_dataset.exists():
             print("\n⚠️ Проверяем старый датасет:")
             validate_dataset(old_dataset)
