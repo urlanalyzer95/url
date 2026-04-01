@@ -372,8 +372,8 @@ def admin_feedbacks():
         rows = conn.execute("SELECT id, url, feedback, timestamp FROM feedbacks ORDER BY timestamp DESC LIMIT 50").fetchall()
         conn.close()
         
-        html = f"<h1>📊 Отзывы для ML ({len(rows)})</h1>"
-        html += "<style>table{border-collapse:collapse;width:100%;}th,td{border:1px solid #ddd;padding:8px;}</style>"
+        html = f"<h1>Отзывы для ML ({len(rows)})</h1>"  # ✅ Emoji убраны
+        html += "<style>table{border-collapse:collapse;width:100%}th,td{border:1px solid silver;padding:8px}</style>"
         html += "<table><tr><th>ID</th><th>URL</th><th>Feedback</th><th>Дата</th></tr>"
         
         for row in rows:
@@ -381,7 +381,7 @@ def admin_feedbacks():
             url_short = (url[:50] + "..." if len(url) > 50 else url)
             html += f"<tr><td>{id_}</td><td><a href='{url}' target='_blank'>{url_short}</a></td><td>{feedback}</td><td>{timestamp}</td></tr>"
         
-        html += "</table><br><a href='/'>🏠 Главная</a>"
+        html += "</table><br><a href='/'>Главная</a>"
         return html
     except Exception as e:
         return f"<h1>Ошибка</h1><p>{e}</p><a href='/'>Главная</a>"
