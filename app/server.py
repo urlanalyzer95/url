@@ -372,20 +372,23 @@ def admin_feedbacks():
         rows = conn.execute("SELECT id, url, feedback, timestamp FROM feedbacks ORDER BY timestamp DESC LIMIT 50").fetchall()
         conn.close()
         
-        html = f"<h1>Отзывы для ML ({len(rows)})</h1>"
-        html += "<style>table{border-collapse:collapse;width:100%}th,td{border:1px solid silver;padding:8px}</style>"
+        html = "<h1>Отзывы для ML (" + str(len(rows)) + ")</h1>"
+        html += "<style>table{border-collapse:collapse;width:100%;}th,td{border:1px solid silver;padding:8px;text-align:left;}</style>"
         html += "<table><tr><th>ID</th><th>URL</th><th>Feedback</th><th>Дата</th></tr>"
         
         for row in rows:
-            id_, url, feedback, timestamp = row
+            id_ = row[0]
+            url = row[1]
+            feedback = row[2]
+            timestamp = row[3]
             url_short = (url[:50] + "..." if len(url) > 50 else url)
-            html += f"<tr><td>{id_}</td><td><a href=\"{url}\">{url_short}</a></td><td>{feedback}</td><td>{timestamp}</td></tr>"  # ✅
+            html += "<tr><td>" + str(id_) + "</td><td><a href=\"" + url + "\">" + url_short + "</a></td><td>" + feedback + "</td><td>" + timestamp + "</td></tr>"
         
         html += "</table><br><a href='/'>Главная</a>"
-        return html
+        return html, 200, {'Content-Type': 'text/html; charset=utf-8'}
     except Exception as e:
-        return f"<h1>Ошибка</h1><p>{e}</p><a href='/'>Главная</a>"
-
+        return "<h1>Ошибка БД</h1><p>" + str(e) + "</p><a href='/'>Главная</a>", 500, {'Content-Type': 'text/html; charset=utf-8'}
+        
 @app.route("/health")
 def health():
     return jsonify({
