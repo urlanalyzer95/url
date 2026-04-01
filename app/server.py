@@ -359,7 +359,7 @@ def retrain_model():
         
         return jsonify({'status': f'✅ Model retrained! {len(df)} samples'})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500)
+        return jsonify({'error': str(e)}), 500
 
 @app.route("/admin/feedbacks")
 def admin_feedbacks():
