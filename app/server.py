@@ -165,28 +165,28 @@ def has_many_subdomains(url: str) -> bool:
 
 def compute_score(url: str) -> float:
     signals = []
-    
-    # 🚨 СУПЕР-ФИШИНГ (ПРИОРИТЕТ №1)
     url_lower = url.lower()
-    if any(x in url_lower for x in ['g00gle', 'go0gle', 'goog1e', 'yаndex', 'sberbаnk']):
-        return 0.95  # ← ЖЕСТКИЙ ФИШИНГ!
     
-    # 15 ЭВРИСТИК (каждая добавляет баллы)
+    # 🚨 СУПЕР-ФИШИНГ №1
+    if any(x in url_lower for x in ['g00gle', 'go0gle', 'goog1e']):
+        return 0.95
+    
+    # 🚨 КИРИЛЛИЦА В DOMEN
+    if has_homoglyphs(url):
+        signals.append(0.60)  # pаypal → РЕАЛЬНЫЙ ФИШИНГ!
+    
+    # БРЕНДЫ ТОЛЬКО с подозрительными словами
+    if has_brand_phishing(url) and any(w in url for w in ['login', 'secure', 'verify']):
+        signals.append(0.50)
+    
+    # ОСНОВНЫЕ ЭВРИСТИКИ
     if not url.startswith('https://'): signals.append(0.15)
-    if has_brand_phishing(url): signals.append(0.50)
-    if is_typosquatting(url): signals.append(0.45)
     if is_shortener(url): signals.append(0.35)
-    if has_suspicious_path(url): signals.append(0.35)
-    if has_suspicious_params(url): signals.append(0.30)
     if is_suspicious_tld(url): signals.append(0.30)
-    if has_numbers_in_domain(url): signals.append(0.20)
-    if is_short_domain(url): signals.append(0.15)
     if is_ip_with_port(url): signals.append(0.45)
-    if has_many_subdomains(url): signals.append(0.20)
     
     total = sum(signals)
     return min(total, 1.0)
-
 
 def get_explanations(url):
     exps = []
