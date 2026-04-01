@@ -206,50 +206,6 @@ def compute_score(url: str) -> float:
     print(f"DEBUG: score={total:.2f} signals={len(signals)}", file=sys.stderr)
     return min(total, 1.0)
 
-def compute_score(url):
-    signals = []
-    url_norm = url.lower().rstrip('/')
-
-    if model and features_df is not None:
-        try:
-            if 'url_norm' not in features_df.columns:
-                features_df['url_norm'] = features_df['url'].apply(lambda x: x.lower().rstrip('/'))
-            row = features_df[features_df['url_norm'] == url_norm]
-            if not row.empty:
-                X = row[feature_columns]
-                ml_prob = model.predict_proba(X)[0][1]
-                signals.append((0.6, ml_prob))
-        except Exception as e:
-            print(f"ML ошибка: {e}", file=sys.stderr)
-
-    if not url.startswith('https'):
-        signals.append((0.15, "нет HTTPS"))
-    if has_brand_phishing(url):
-        signals.append((0.5, "бренд"))
-    if is_typosquatting(url):
-        signals.append((0.45, "опечатка"))
-    if is_shortener(url):
-        signals.append((0.35, "сокращатель"))
-    if has_suspicious_path(url):
-        signals.append((0.35, "путь"))
-    if has_suspicious_params(url):
-        signals.append((0.3, "параметры"))
-    if has_numbers_in_domain(url):
-        signals.append((0.12, "цифры"))
-    if is_short_domain(url):
-        signals.append((0.1, "короткий домен"))
-    if is_suspicious_tld(url):
-        signals.append((0.3, "TLD"))
-    if is_ip_with_port(url):
-        signals.append((0.45, "IP с портом"))
-    if has_many_subdomains(url):
-        signals.append((0.12, "много поддоменов"))
-
-    if not signals:
-        signals.append((0.05, "нет признаков"))
-
-    total = sum(w for w, _ in signals)
-    return min(total, 1.0)
 
 def get_explanations(url):
     exps = []
