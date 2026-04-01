@@ -209,6 +209,10 @@ def compute_score(url: str) -> float:
 def get_explanations(url):
     exps = []
 
+    if 'g00gle' in url.lower() or 'go0gle' in url.lower():
+        exps.append("🚨 ПОДДЕЛЬНЫЙ GOOGLE (g00gle → google)")
+        return exps
+
     if not url.startswith('https'):
         exps.append("Отсутствует защищённое соединение HTTPS")
     if is_shortener(url):
