@@ -1,110 +1,80 @@
 import joblib
 import numpy as np
-import pandas as pd
-from typing import Dict, Tuple
+import re
+from urllib.parse import urlparse
 from config import Config
-from logger import logger
-from src.features import extract_features
 
 class EnsemblePredictor:
-    """Ансамбль моделей Random Forest и XGBoost"""
-    
     def __init__(self):
         self.random_forest = None
         self.xgboost = None
-        self.weights = Config.MODEL_WEIGHTS
+        self.feature_cols = Config.FEATURE_COLS
+        self.is_loaded = False
         self.load_models()
     
     def load_models(self):
-        """Загрузка обеих моделей"""
+        """Загрузка моделей"""
         try:
-            if Config.RANDOM_FOREST_PATH.exists():
-                self.random_forest = joblib.load(Config.RANDOM_FOREST_PATH)
-                logger.info("✅ Random Forest модель загружена")
-            else:
-                logger.warning(f"⚠️ Random Forest не найден: {Config.RANDOM_FOREST_PATH}")
-        except Exception as e:
-            logger.error(f"Ошибка загрузки Random Forest: {e}")
-        
-        try:
-            if Config.XGBOOST_PATH.exists():
-                self.xgboost = joblib.load(Config.XGBOOST_PATH)
-                logger.info("✅ XGBoost модель загружена")
-            else:
-                logger.warning(f"⚠️ XGBoost не найден: {Config.XGBOOST_PATH}")
-        except Exception as e:
-            logger.error(f"Ошибка загрузки XGBoost: {e}")
+            self.random_forest = joblib.load('ml/models/random_forest.pkl')
+            # self.xgboost = joblib.load('ml/models/xgboost.pkl')
+            self.is_loaded = self.random_forest is not None
+        except:
+            self.is_loaded = False
     
-    def predict_proba(self, url: str) -> Dict[str, float]:
-        """
-        Предсказание вероятности фишинга
+    def is_model_loaded(self):
+        return self.is_loaded
+    
+    def extract_features(self, url):
+        """Извлечение признаков"""
+        features = np.zeros(len(self.feature_cols))
         
-        Returns:
-            Dict с вероятностями от каждой модели и ансамбля
-        """
-        # Извлекаем признаки
-        features = extract_features(url)
-        X = pd.DataFrame([features], columns=Config.FEATURE_COLS)
+        # url_length
+        features[0] = len(url)
         
-        result = {
-            'random_forest': None,
-            'xgboost': None,
-            'ensemble': None
+        # num_dots, num_hyphens, num_slashes
+        features[1] = url.count('.')
+        features[2] = url.count('-')
+        features[3] = url.count('/')
+        
+        # num_params
+        features[4] = url.count('?') + url.count('&')
+        
+        # has_ip
+        features[5] = 1 if re.match(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', url) else 0
+        
+        # has_https
+        features[6] = 1 if 'https' in url else 0
+        
+        # has_login, has_verify, has_account
+        suspicious = ['login', 'verify', 'account', 'cp.php', 'admin']
+        for i, word in enumerate(suspicious, 7):
+            features[i] = 1 if word in url.lower() else 0
+        
+        # is_shortened
+        features[12] = 1 if any(s in url for s in Config.URL_SHORTENERS) else 0
+        
+        # domain_length
+        try:
+            domain = urlparse(url).netloc
+            features[13] = len(domain)
+        except:
+            features[13] = 0
+            
+        return features
+    
+    def predict_proba(self, url):
+        """Предсказание вероятности"""
+        if not self.is_loaded:
+            return {'ensemble': 0.3, 'random_forest': 0.3, 'xgboost': None}
+        
+        features = self.extract_features(url).reshape(1, -1)
+        rf_proba = self.random_forest.predict_proba(features)[0][1]
+        
+        return {
+            'ensemble': rf_proba,
+            'random_forest': rf_proba,
+            'xgboost': None  # Пока не загружен
         }
-        
-        # Предсказания от каждой модели
-        if self.random_forest is not None:
-            try:
-                rf_proba = self.random_forest.predict_proba(X)[0][1]
-                result['random_forest'] = rf_proba
-            except Exception as e:
-                logger.error(f"Ошибка Random Forest: {e}")
-        
-        if self.xgboost is not None:
-            try:
-                xgb_proba = self.xgboost.predict_proba(X)[0][1]
-                result['xgboost'] = xgb_proba
-            except Exception as e:
-                logger.error(f"Ошибка XGBoost: {e}")
-        
-        # Ансамбль (взвешенное среднее)
-        valid_models = []
-        weighted_sum = 0
-        total_weight = 0
-        
-        if result['random_forest'] is not None:
-            weighted_sum += result['random_forest'] * self.weights['random_forest']
-            total_weight += self.weights['random_forest']
-            valid_models.append('random_forest')
-        
-        if result['xgboost'] is not None:
-            weighted_sum += result['xgboost'] * self.weights['xgboost']
-            total_weight += self.weights['xgboost']
-            valid_models.append('xgboost')
-        
-        if total_weight > 0:
-            result['ensemble'] = weighted_sum / total_weight
-        
-        # Логирование
-        logger.debug(f"URL: {url[:50]}... RF={result['random_forest']:.3f}, "
-                    f"XGB={result['xgboost']:.3f}, Ensemble={result['ensemble']:.3f}")
-        
-        return result
-    
-    def predict(self, url: str) -> Tuple[int, float]:
-        """
-        Предсказание класса (0 - безопасно, 1 - опасно)
-        
-        Returns:
-            (класс, вероятность)
-        """
-        result = self.predict_proba(url)
-        proba = result['ensemble'] if result['ensemble'] is not None else 0.5
-        return (1 if proba > 0.5 else 0, proba)
-    
-    def is_model_loaded(self) -> bool:
-        """Проверка, загружена ли хотя бы одна модель"""
-        return self.random_forest is not None or self.xgboost is not None
 
 # Глобальный экземпляр
 ensemble = EnsemblePredictor()
