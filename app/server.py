@@ -113,37 +113,137 @@ def is_typosquatting(url: str) -> bool:
     except:
         return False
 
-def compute_score(url: str) -> float:
-    signals = []
+# ДОБАВИТЬ после is_typosquatting():
 
-    # ML из вашего датасета
+def is_shortener(url: str) -> bool:
+    return any(s in url.lower() for s in ['bit.ly', 'goo.gl', 'tinyurl', 'cutt.ly'])
+
+def has_suspicious_path(url: str) -> bool:
+    path = urlparse(url).path.lower()
+    return any(w in path for w in SUSPICIOUS_WORDS["path"])
+
+def has_suspicious_params(url: str) -> bool:
+    query = urlparse(url).query.lower()
+    return any(w in query for w in SUSPICIOUS_WORDS["param"])
+
+def is_suspicious_tld(url: str) -> bool:
+    suspicious = [".xyz", ".top", ".club", ".tk", ".ml"]
+    return any(tld in url.lower() for tld in suspicious)
+
+def has_numbers_in_domain(url: str) -> bool:
+    try:
+        netloc = urlparse(url).netloc
+        return sum(c.isdigit() for c in netloc) > 5
+    except:
+        return False
+
+
+def compute_score(url: str) -> float:  # ← Оставить ЭТУ
+    signals = []
+    print(f"DEBUG: {url}", file=sys.stderr)
+    
+    # ML (исправить)
     if model and features_df is not None:
         try:
-            row = features_df[features_df["url"] == url]
+            row = features_df[features_df["url"] == url]  # ← ТОЧНОЕ совпадение
             if not row.empty:
                 X = row[feature_columns]
                 ml_prob = model.predict_proba(X)[0][1]
-                signals.append((0.6, f"ML: {ml_prob:.2f}"))
-        except:
-            pass
+                signals.append((0.6 * ml_prob, "ML"))  # ← 0.6 * вероятность
+        except Exception as e:
+            print(f"ML error: {e}", file=sys.stderr)
 
-    # Ваши эвристики
-    if has_brand_phishing(url): signals.append((0.4, "brand phishing"))
-    if is_typosquatting(url): signals.append((0.35, "typosquatting"))
-    if not url.startswith('https://'): signals.append((0.2, "no HTTPS"))
+    # ✅ ФИКС g00gle.com
+    url_lower = url.lower()
+    if 'g00gle' in url_lower or 'go0gle' in url_lower:
+        signals.append((0.85, "🚨 GOOGLE ФИШИНГ"))
     
+    if not url.startswith('https://'): signals.append((0.15, "no HTTPS"))
+    if has_brand_phishing(url): signals.append((0.5, "brand"))
+    if is_typosquatting(url): signals.append((0.45, "typo"))
+    if is_shortener(url): signals.append((0.35, "shortener"))
+    
+    total = sum(w for w, _ in signals)
+    print(f"DEBUG: score={total:.2f}", file=sys.stderr)
+    return min(total, 1.0)
+
+
+def compute_score(url):
+    signals = []
+    url_norm = url.lower().rstrip('/')
+
+    if model and features_df is not None:
+        try:
+            if 'url_norm' not in features_df.columns:
+                features_df['url_norm'] = features_df['url'].apply(lambda x: x.lower().rstrip('/'))
+            row = features_df[features_df['url_norm'] == url_norm]
+            if not row.empty:
+                X = row[feature_columns]
+                ml_prob = model.predict_proba(X)[0][1]
+                signals.append((0.6, ml_prob))
+        except Exception as e:
+            print(f"ML ошибка: {e}", file=sys.stderr)
+
+    if not url.startswith('https'):
+        signals.append((0.15, "нет HTTPS"))
+    if has_brand_phishing(url):
+        signals.append((0.5, "бренд"))
+    if is_typosquatting(url):
+        signals.append((0.45, "опечатка"))
+    if is_shortener(url):
+        signals.append((0.35, "сокращатель"))
+    if has_suspicious_path(url):
+        signals.append((0.35, "путь"))
+    if has_suspicious_params(url):
+        signals.append((0.3, "параметры"))
+    if has_numbers_in_domain(url):
+        signals.append((0.12, "цифры"))
+    if is_short_domain(url):
+        signals.append((0.1, "короткий домен"))
+    if is_suspicious_tld(url):
+        signals.append((0.3, "TLD"))
+    if is_ip_with_port(url):
+        signals.append((0.45, "IP с портом"))
+    if has_many_subdomains(url):
+        signals.append((0.12, "много поддоменов"))
+
     if not signals:
-        signals.append((0.05, "clean"))
-    
-    return min(sum(w for w, _ in signals), 1.0)
+        signals.append((0.05, "нет признаков"))
 
-def get_explanations(url: str) -> list[str]:
+    total = sum(w for w, _ in signals)
+    return min(total, 1.0)
+
+def get_explanations(url):
     exps = []
-    if not url.startswith("https://"): exps.append("Нет HTTPS")
-    if has_brand_phishing(url): exps.append("Фишинг бренда")
-    if is_typosquatting(url): exps.append("Тиpoсквоттинг")
-    if not exps: exps.append("Чисто")
+
+    if not url.startswith('https'):
+        exps.append("Отсутствует защищённое соединение HTTPS")
+    if is_shortener(url):
+        exps.append("Сервис сокращения ссылок")
+    if has_brand_phishing(url):
+        exps.append("Ссылка использует имя известного бренда для обмана")
+    if is_typosquatting(url):
+        exps.append("Ссылка имитирует домен известного сайта")
+    if has_suspicious_path(url):
+        exps.append("В пути ссылки обнаружены подозрительные слова")
+    if has_suspicious_params(url):
+        exps.append("Ссылка содержит подозрительные параметры перенаправления")
+    if has_numbers_in_domain(url):
+        exps.append("Домен содержит много цифр")
+    if is_short_domain(url):
+        exps.append("Слишком короткий домен")
+    if is_suspicious_tld(url):
+        exps.append("Подозрительная доменная зона")
+    if is_ip_with_port(url):
+        exps.append("IP-адрес с портом")
+    if has_many_subdomains(url):
+        exps.append("Слишком много поддоменов")
+
+    if not exps:
+        exps.append("Явных признаков фишинга не обнаружено")
+
     return exps
+
 
 # ========================================
 # ✅ ROUTES (HTML FORM + API)
