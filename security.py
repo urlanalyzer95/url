@@ -7,7 +7,11 @@ def validate_url(url):
     return True, ""
 
 def rate_limit(f):
-    """Декоратор rate limit (заглушка)"""
+    """Декоратор rate limit (заглушка для продакшена)"""
     return f
 
-security = type('Security', (), {'validate_url': validate_url, 'rate_limit': rate_limit})()
+# Фикс: security = объект с АТРИБУТАМИ
+security = type('Security', (), {
+    'validate_url': validate_url, 
+    'rate_limit': rate_limit  # ← ФУНКЦИЯ, а не объект!
+})()
