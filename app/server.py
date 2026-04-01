@@ -48,7 +48,7 @@ def get_conn():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             url TEXT NOT NULL,
             feedback TEXT NOT NULL,
-            label INTEGER,  # ← ДОБАВИТЬ!
+            label INTEGER,  
             timestamp TEXT NOT NULL
         )
     """)
