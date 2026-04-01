@@ -3,18 +3,21 @@
 """
 
 import pandas as pd
-from pathlib import Path
 import sys
+from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
-from config import Config
+
+# Импортируем из ml папки
+sys.path.append(str(Path(__file__).parent.parent / 'ml'))
+from features import extract_features
 
 def prepare_dataset():
     """Подготовка нового датасета с учетом отзывов"""
     print("🔄 ПОДГОТОВКА НОВОГО ДАТАСЕТА...")
     
     # 1. Загружаем основной датасет
-    main_path = Config.PROCESSED_DATA_DIR / 'url_dataset_features.csv'
+    main_path = Path('data/processed/url_dataset_features.csv')
     if not main_path.exists():
         print(f"❌ Основной датасет не найден: {main_path}")
         return None
@@ -23,10 +26,11 @@ def prepare_dataset():
     print(f"📁 Основной датасет: {len(main_df)} записей")
     
     # 2. Загружаем новые примеры из отзывов
-    new_examples_path = Config.DATA_DIR / 'new_training_examples.csv'
+    new_examples_path = Path('data/new_training_examples.csv')
     if not new_examples_path.exists():
         print("⚠️ Нет новых примеров из отзывов")
-        main_df.to_csv(Config.PROCESSED_DATA_DIR / 'url_dataset_features_v2.csv', index=False)
+        # Сохраняем старый датасет как v2
+        main_df.to_csv(Path('data/processed/url_dataset_features_v2.csv'), index=False)
         return main_df
     
     feedback_df = pd.read_csv(new_examples_path)
@@ -35,9 +39,8 @@ def prepare_dataset():
     # 3. Извлекаем признаки для новых URL
     print("\n⚙️ Извлечение признаков...")
     
-    # Импортируем функцию из features.py (из ml папки)
-    sys.path.append(str(Config.BASE_DIR / 'ml'))
-    from features import extract_features
+    # Определяем колонки признаков (все кроме url и label)
+    feature_cols = [c for c in main_df.columns if c not in ['url', 'label']]
     
     new_features = []
     valid_urls = []
@@ -48,11 +51,15 @@ def prepare_dataset():
             url = row['url']
             label = row['label']
             
+            # Извлекаем признаки
             features = extract_features(url)
             new_features.append(features)
             valid_urls.append(url)
             valid_labels.append(label)
             
+            if (idx + 1) % 100 == 0:
+                print(f"   Обработано {idx + 1}/{len(feedback_df)} URL...")
+                
         except Exception as e:
             print(f"⚠️ Ошибка для {row['url'][:50]}: {e}")
             continue
@@ -62,7 +69,6 @@ def prepare_dataset():
         return main_df
     
     # Создаем DataFrame с признаками
-    feature_cols = [c for c in main_df.columns if c not in ['url', 'label']]
     new_df = pd.DataFrame(new_features, columns=feature_cols)
     new_df['url'] = valid_urls
     new_df['label'] = valid_labels
@@ -83,7 +89,7 @@ def prepare_dataset():
     print(f"   Всего: {len(combined_df)}")
     
     # 7. Сохраняем
-    output_path = Config.PROCESSED_DATA_DIR / 'url_dataset_features_v2.csv'
+    output_path = Path('data/processed/url_dataset_features_v2.csv')
     combined_df.to_csv(output_path, index=False)
     print(f"\n✅ НОВЫЙ ДАТАСЕТ СОХРАНЁН:")
     print(f"   {output_path}")
@@ -92,5 +98,4 @@ def prepare_dataset():
     return combined_df
 
 if __name__ == '__main__':
-    Config.init_dirs()
     prepare_dataset()
