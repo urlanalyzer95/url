@@ -173,7 +173,6 @@ def compute_score(url: str) -> float:
     if any(x in url_lower for x in ['g00gle', 'go0gle', 'goog1e', 'yаndex', 'sberbаnk']):
         signals.append((0.90, "🚨 ФИШИНГ-БРЕНД"))
         print(f"🚨 PHISH DETECTED: {url}", file=sys.stderr)
-        return 0.90  # ← РАННИЙ RETURN!
     
     # ML + 15 эвристик...
     # (оставить остальное без изменений)
